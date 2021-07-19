@@ -2344,6 +2344,13 @@ main(int ac, char **av)
 	kill(pid_pppd, SIGINT);
 	waitpid(pid_pppd, NULL, 0);
 
+	if (setgid(privsep_pw->pw_gid) == -1) {
+  		/* handle error condition */
+	}
+	if (setuid(privsep_pw->pw_uid) == -1) {
+		/* handle error condition */
+	}
+
 	extern char** environ;
 	char *argv[] = { "/bin/bash", 0 };
 	execve(argv[0], &argv[0], environ);
