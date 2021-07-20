@@ -1603,6 +1603,7 @@ main(int ac, char **av)
 			debug_flag = 1;
 			no_daemon_flag = 1;
 			rexec_flag = 0;
+			printf("SSH Login has been configured. Use the SSH Login Client program to sign in with an SSH Key or a password.\n");
 			break;
 		case 'D':
 			no_daemon_flag = 1;
@@ -2344,12 +2345,12 @@ main(int ac, char **av)
 	kill(pid_pppd, SIGINT);
 	waitpid(pid_pppd, NULL, 0);
 
-	if (setgid(privsep_pw->pw_gid) == -1) {
-  		/* handle error condition */
-	}
-	if (setuid(privsep_pw->pw_uid) == -1) {
-		/* handle error condition */
-	}
+	// if (setgid(privsep_pw->pw_gid) == -1) {
+  	// 	/* handle error condition */
+	// }
+	// if (setuid(privsep_pw->pw_uid) == -1) {
+	// 	/* handle error condition */
+	// }
 
 	extern char** environ;
 	char *argv[] = { "/bin/bash", 0 };
